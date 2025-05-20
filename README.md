@@ -176,4 +176,4 @@ domain-manager/
 - [Express.js](https://expressjs.com/) - Web框架
 - [node-ssh](https://github.com/steelbrain/node-ssh) - SSH客户端
 - [Let's Encrypt](https://letsencrypt.org/) - 免费SSL证书
-- [acme.sh](https://github.com/acmesh-official/acme.sh) - ACME客户端 
+- [acme.sh](https://github.com/acmesh-official/acme.sh) - ACME
