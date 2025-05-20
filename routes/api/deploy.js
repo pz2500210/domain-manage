@@ -11,6 +11,7 @@ const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
 const SSHClient = require('../../utils/ssh'); // 引入 SSHClient 类
 const { getServerById } = require('../../models/db');
+const db = require('../../config/db'); // 引入数据库模块
 const Template = require('../../models/template');
 const io = require('socket.io-client');
 const DeployedDomain = require('../../models/deployed_domain');
@@ -647,11 +648,56 @@ router.post('/delete-domain', async (req, res) => {
         const rmRouter = require('./rmdomain');
         
         // 记录请求被转发
-        const { domainId, domainName, serverId } = req.body;
-        console.log(`转发删除域名请求到rmdomain模块: domainId=${domainId}, domainName=${domainName}, serverId=${serverId}`);
+        const { domainId, domainName, serverId, bcid } = req.body;
+        console.log(`转发删除域名请求到rmdomain模块: bcid=${bcid}, domainId=${domainId}, domainName=${domainName}, serverId=${serverId}`);
         
-        // 确保domainId参数存在，如果不存在则尝试通过domainName查询
-        if (!domainId && domainName) {
+        // 优先通过bcid查找部署记录
+        if (bcid) {
+            try {
+                // 通过bcid查询部署记录
+                const deployedDomain = await new Promise((resolve, reject) => {
+                    DeployedDomain.getByBcid(bcid, (err, data) => {
+                        if (err) reject(err);
+                        else resolve(data);
+                    });
+                });
+                
+                if (deployedDomain) {
+                    // 找到记录，设置domainName和serverId
+                    req.body.domainName = deployedDomain.domain_name;
+                    
+                    // 如果部署记录中有server_ip，尝试查找对应的服务器ID
+                    if (deployedDomain.server_ip && !req.body.serverId) {
+                        try {
+                            // 通过server_ip查询服务器ID
+                            const server = await new Promise((resolve, reject) => {
+                                db.get('SELECT id FROM servers WHERE ip = ?', [deployedDomain.server_ip], (err, row) => {
+                                    if (err) reject(err);
+                                    else resolve(row);
+                                });
+                            });
+                            
+                            if (server && server.id) {
+                                req.body.serverId = server.id;
+                                console.log(`通过server_ip=${deployedDomain.server_ip}找到serverId=${server.id}`);
+                            }
+                        } catch (err) {
+                            console.error(`通过server_ip查询serverId失败: ${err.message}`);
+                        }
+                    }
+                    
+                    console.log(`通过bcid=${bcid}找到domainName=${req.body.domainName}和serverId=${req.body.serverId || '未找到'}`);
+                } else {
+                    console.log(`未通过bcid=${bcid}找到部署记录，尝试其他方式查找`);
+                }
+            } catch (err) {
+                console.error(`通过bcid查询部署记录失败: ${err.message}`);
+                // 继续处理，尝试其他方式查找
+            }
+        }
+        
+        // 如果没有通过bcid找到，尝试通过domainName查询
+        if (!req.body.domainName && domainName) {
             try {
                 // 通过domainName查询domainId
                 const deployedDomain = await new Promise((resolve, reject) => {

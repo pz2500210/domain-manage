@@ -1,7 +1,4 @@
 document.addEventListener('DOMContentLoaded', function() {
-    // 执行状态标志变量，防止重复执行
-    let isCheckingDomain = false;
-    
     // 系统密码 - 实际应用中应该从服务器获取或使用更安全的方式
     let SYSTEM_PASSWORD = "admin123";
     
@@ -372,8 +369,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     password: document.getElementById('newServerPassword').value,
                     key_file: document.getElementById('newServerKeyFile').files[0]?.name || '',
                     webroot: document.getElementById('newServerWebRoot').value,
-                    notes: document.getElementById('newServerNote').value,
-                    hostname: document.getElementById('newServerHostname').value
+                    notes: document.getElementById('newServerNote').value
                 };
                 
                 fetch('/api/servers', {
@@ -503,14 +499,6 @@ document.addEventListener('DOMContentLoaded', function() {
             // 首先检查域名是否已部署
             addLogEntry('正在检查域名部署状态...', 'info');
             
-            // 防止重复执行
-            if (isCheckingDomain) {
-                console.log('正在检查中，忽略重复请求');
-                return;
-            }
-            
-            isCheckingDomain = true;
-            
             fetch('/api/deploy/check-domain', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -534,7 +522,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                      `部署日期: ${deployDate}\n` +
                                      `继续操作将覆盖现有部署。确定要继续吗？`)) {
                             addLogEntry('操作已取消: 域名已部署', 'warn');
-                            isCheckingDomain = false; // 重置状态
                             return;
                         }
                         addLogEntry('继续部署: 将覆盖现有部署', 'warn');
@@ -544,12 +531,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     validateAndPrepare();
                 } else {
                     addLogEntry(`检查域名失败: ${result.error || '未知错误'}`, 'error');
-                    isCheckingDomain = false; // 重置状态
                 }
             })
             .catch(error => {
                 addLogEntry(`检查域名请求失败: ${error.message}`, 'error');
-                isCheckingDomain = false; // 重置状态
             });
             
             // 验证服务器并准备部署
@@ -566,7 +551,6 @@ document.addEventListener('DOMContentLoaded', function() {
                                 addLogEntry(`- ${error}`, 'error');
                             });
                             addLogEntry('请先更新服务器配置后再保存。', 'error');
-                            isCheckingDomain = false; // 重置状态
                             return;
                         }
                         
@@ -583,7 +567,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         const certificate = {
                             id: certificateSelect.value,
-                            type: certificateSelect.value  // 使用value而不是text
+                           // type: certificateSelect.options[certificateSelect.selectedIndex].text
+                           type: certificateSelect.value
                         };
                         
                         const template = {
@@ -629,16 +614,13 @@ document.addEventListener('DOMContentLoaded', function() {
                                 // 使用日志窗口显示错误消息
                                 addLogEntry(`配置准备失败: ${result.error}`, 'error');
                             }
-                            isCheckingDomain = false; // 重置状态
                         })
                         .catch(error => {
                             addLogEntry(`配置保存请求失败: ${error.message}`, 'error');
-                            isCheckingDomain = false; // 重置状态
                         });
                     })
                     .catch(error => {
                         addLogEntry(`验证服务器失败: ${error.message}`, 'error');
-                        isCheckingDomain = false; // 重置状态
                     });
             }
         });
@@ -1235,7 +1217,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     document.getElementById('editServerAuthType').value = server.auth_type || 'password';
                     document.getElementById('editServerWebRoot').value = server.webroot || '';
                     document.getElementById('editServerNote').value = server.notes || '';
-                    document.getElementById('editServerHostname').value = server.hostname || '';
                     
                     // 根据认证方式显示不同的表单字段
                     if (server.auth_type === 'key') {
@@ -1309,8 +1290,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     username: document.getElementById('editServerUsername').value,
                     auth_type: document.getElementById('editServerAuthType').value,
                     webroot: document.getElementById('editServerWebRoot').value,
-                    notes: document.getElementById('editServerNote').value,
-                    hostname: document.getElementById('editServerHostname').value
+                    notes: document.getElementById('editServerNote').value
                 };
                 
                 // 只有在密码字段有值时才发送
@@ -1453,40 +1433,22 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // WebSocket连接
     function connectWebSocket() {
-        try {
-            if (typeof io !== 'undefined') {
-                const socket = io();
-                
-                socket.on('deploy-log', (data) => {
-                    if (data.type === 'stderr') {
-                        addLogEntry(data.data, 'error');
-                    } else {
-                        addLogEntry(data.data, 'info');
-                    }
-                });
-                
-                return socket;
+        const socket = io();
+        
+        socket.on('deploy-log', (data) => {
+            if (data.type === 'stderr') {
+                addLogEntry(data.data, 'error');
             } else {
-                console.warn('Socket.io未加载，WebSocket功能将不可用');
-                return null;
+                addLogEntry(data.data, 'info');
             }
-        } catch (error) {
-            console.error('WebSocket连接失败:', error);
-            return null;
-        }
+        });
+        
+        return socket;
     }
 
     // 在页面加载时连接WebSocket
-    let socket = null;
-    try {
-        socket = connectWebSocket();
-    } catch (error) {
-        console.warn('WebSocket初始化失败:', error);
-    }
+    const socket = connectWebSocket();
 
-//    if (logContainer) {
-//        logContainer.style.display = 'block';
-//    }
 
 });
 
@@ -1512,81 +1474,77 @@ function loadStatistics() {
     }
 }
 
-// 修改API定义，确保只定义一次
 // API 通用函数
-if (typeof window.API === 'undefined') {
-    console.log('定义全局API对象');
-    window.API = {
-        get: async (url) => {
-            try {
-                const response = await fetch(url);
-                if (!response.ok) {
-                    throw new Error(`请求失败: ${response.status}`);
-                }
-                return await response.json();
-            } catch (error) {
-                console.error('API 请求错误:', error);
-                throw error;
+const API = {
+    get: async (url) => {
+        try {
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`请求失败: ${response.status}`);
             }
-        },
-        post: async (url, data) => {
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
-                if (!response.ok) {
-                    throw new Error(`请求失败: ${response.status}`);
-                }
-                return await response.json();
-            } catch (error) {
-                console.error('API 请求错误:', error);
-                throw error;
-            }
-        },
-        put: async (url, data) => {
-            try {
-                const response = await fetch(url, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(data)
-                });
-                if (!response.ok) {
-                    throw new Error(`请求失败: ${response.status}`);
-                }
-                return await response.json();
-            } catch (error) {
-                console.error('API 请求错误:', error);
-                throw error;
-            }
-        },
-        delete: async (url) => {
-            try {
-                const response = await fetch(url, {
-                    method: 'DELETE'
-                });
-                if (!response.ok) {
-                    throw new Error(`请求失败: ${response.status}`);
-                }
-                return await response.json();
-            } catch (error) {
-                console.error('API 请求错误:', error);
-                throw error;
-            }
+            return await response.json();
+        } catch (error) {
+            console.error('API 请求错误:', error);
+            throw error;
         }
-    };
-} else {
-    console.log('API对象已存在，跳过定义');
-}
+    },
+    
+    post: async (url, data) => {
+        try {
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            if (!response.ok) {
+                throw new Error(`请求失败: ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('API 请求错误:', error);
+            throw error;
+        }
+    },
+    
+    put: async (url, data) => {
+        try {
+            const response = await fetch(url, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(data)
+            });
+            if (!response.ok) {
+                throw new Error(`请求失败: ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('API 请求错误:', error);
+            throw error;
+        }
+    },
+    
+    delete: async (url) => {
+        try {
+            const response = await fetch(url, {
+                method: 'DELETE'
+            });
+            if (!response.ok) {
+                throw new Error(`请求失败: ${response.status}`);
+            }
+            return await response.json();
+        } catch (error) {
+            console.error('API 请求错误:', error);
+            throw error;
+        }
+    }
+};
 
 function loadDomains() {
     console.log('开始加载域名列表...');
-    
     fetch('/api/domains')
         .then(response => {
             console.log('域名API响应状态:', response.status);
@@ -1598,34 +1556,17 @@ function loadDomains() {
             const mainTbody = document.querySelector('.table-fixed-header tbody');
             if (mainTbody) {
                 mainTbody.innerHTML = '';
-                
                 domains.forEach(domain => {
-                    // 处理服务器IP显示
                     let serverIPDisplay = '-';
                     if (domain.server_ip) {
                         serverIPDisplay = domain.server_ip;
                     } else if (domain.server_name) {
                         serverIPDisplay = domain.server_name;
                     } else if (domain.server_id) {
-                        // 如果有server_id但没有显示IP，尝试从服务器列表获取
-                        const serverId = domain.server_id;
-                        fetch(`/api/servers/${serverId}`)
-                            .then(response => response.json())
-                            .then(server => {
-                                if (server && server.ip) {
-                                    const ipCell = document.querySelector(`tr[data-domain-id="${domain.id}"] td:nth-child(6)`);
-                                    if (ipCell) {
-                                        ipCell.innerHTML = server.ip;
-                                    }
-                                }
-                            })
-                            .catch(err => console.error(`获取服务器 ${serverId} 信息失败:`, err));
-                        
                         serverIPDisplay = `<span class="text-warning">正在获取...</span>`;
                     }
-                    
                     mainTbody.innerHTML += `
-                        <tr data-domain-id="${domain.id}">
+                        <tr data-domain-id="${domain.id}" data-bcid="${domain.bcid || ''}">
                             <td>${domain.domain_name}</td>
                             <td>${domain.registrar || '-'}</td>
                             <td>
@@ -1644,20 +1585,78 @@ function loadDomains() {
                             <td>${serverIPDisplay}</td>
                             <td><span class="badge bg-${domain.status === '在线' ? 'success' : 'warning'}">${domain.status || '未知'}</span></td>
                             <td>${domain.notes || '-'}</td>
+                            <td>
+                                <button class="btn btn-sm btn-danger btn-delete-domain" 
+                                    data-bcid="${domain.bcid || ''}" 
+                                    data-domain="${domain.domain_name}" 
+                                    data-server-ip="${domain.server_ip || ''}">
+                                    <i class="bi bi-trash"></i> 删除
+                                </button>
+                            </td>
                         </tr>
                     `;
                 });
-            } else {
-                console.error('找不到主页域名表格元素');
+                // 绑定删除事件
+                document.querySelectorAll('.btn-delete-domain').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const bcid = this.getAttribute('data-bcid');
+                        const domainName = this.getAttribute('data-domain');
+                        const serverIp = this.getAttribute('data-server-ip');
+                        if (bcid) {
+                            if (confirm(`确定要删除域名 ${domainName} 吗？此操作不可恢复！`)) {
+                                fetch('/api/deploy/delete-domain', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ bcid })
+                                })
+                                .then(res => res.json())
+                                .then(result => {
+                                    if (result.success) {
+                                        loadDomains();
+                                        loadDeployedDomains();
+                                    } else {
+                                        alert('删除失败: ' + result.error);
+                                    }
+                                });
+                            }
+                        } else if (domainName && serverIp) {
+                            if (confirm(`确定要删除域名 ${domainName} 吗？此操作不可恢复！`)) {
+                                fetch(`/api/servers/ip/${serverIp}`)
+                                    .then(response => response.json())
+                                    .then(server => {
+                                        if (!server || !server.id) {
+                                            throw new Error(`找不到服务器信息 (IP: ${serverIp})`);
+                                        }
+                                        return fetch('/api/deploy/delete-domain', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ domainName, serverId: server.id })
+                                        });
+                                    })
+                                    .then(res => res.json())
+                                    .then(result => {
+                                        if (result.success) {
+                                            loadDomains();
+                                            loadDeployedDomains();
+                                        } else {
+                                            alert('删除失败: ' + result.error);
+                                        }
+                                    })
+                                    .catch(error => {
+                                        alert('删除失败: ' + error.message);
+                                    });
+                            }
+                        } else {
+                            alert('缺少必要信息，无法删除域名');
+                        }
+                    });
+                });
             }
-            
-            // 更新域名管理表格
+            // 域名管理表格
             const domainsTbody = document.querySelector('#domains-tab-pane tbody');
             if (domainsTbody) {
                 domainsTbody.innerHTML = '';
-                
                 domains.forEach(domain => {
-                    // 处理服务器IP显示
                     let serverIPDisplay = '-';
                     if (domain.server_ip) {
                         serverIPDisplay = domain.server_ip;
@@ -1666,9 +1665,8 @@ function loadDomains() {
                     } else if (domain.server_id) {
                         serverIPDisplay = `<span class="text-warning">已绑定(ID:${domain.server_id})</span>`;
                     }
-                    
                     domainsTbody.innerHTML += `
-                        <tr>
+                        <tr data-bcid="${domain.bcid || ''}">
                             <td>
                                 <div class="form-check">
                                     <input class="form-check-input domain-checkbox" type="checkbox" value="${domain.id}">
@@ -1681,51 +1679,76 @@ function loadDomains() {
                             <td>${serverIPDisplay}</td>
                             <td><span class="badge bg-${domain.status === '在线' ? 'success' : 'warning'}">${domain.status || '未知'}</span></td>
                             <td>
-                                <button class="btn btn-sm btn-warning btn-domain-edit" 
-                                    data-id="${domain.id}">
+                                <button class="btn btn-sm btn-warning btn-domain-edit" data-id="${domain.id}">
                                     <i class="bi bi-pencil"></i> 编辑
+                                </button>
+                                <button class="btn btn-sm btn-danger btn-delete-domain" 
+                                    data-bcid="${domain.bcid || ''}" 
+                                    data-domain="${domain.domain_name}" 
+                                    data-server-ip="${domain.server_ip || ''}">
+                                    <i class="bi bi-trash"></i> 删除
                                 </button>
                             </td>
                         </tr>
                     `;
                 });
-                
-                // 绑定域名复选框事件
-                const domainCheckboxes = document.querySelectorAll('.domain-checkbox');
-                if (domainCheckboxes.length > 0) {
-                    domainCheckboxes.forEach(checkbox => {
-                        checkbox.addEventListener('change', function() {
-                            const checkedCount = document.querySelectorAll('.domain-checkbox:checked').length;
-                            const deleteBtn = document.getElementById('deleteDomainBtn');
-                            if (deleteBtn) {
-                                deleteBtn.disabled = checkedCount === 0;
+                // 绑定删除事件
+                document.querySelectorAll('#domains-tab-pane .btn-delete-domain').forEach(btn => {
+                    btn.addEventListener('click', function() {
+                        const bcid = this.getAttribute('data-bcid');
+                        const domainName = this.getAttribute('data-domain');
+                        const serverIp = this.getAttribute('data-server-ip');
+                        if (bcid) {
+                            if (confirm(`确定要删除域名 ${domainName} 吗？此操作不可恢复！`)) {
+                                fetch('/api/deploy/delete-domain', {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({ bcid })
+                                })
+                                .then(res => res.json())
+                                .then(result => {
+                                    if (result.success) {
+                                        loadDomains();
+                                        loadDeployedDomains();
+                                    } else {
+                                        alert('删除失败: ' + result.error);
+                                    }
+                                });
                             }
-                            
-                            // 更新全选复选框状态
-                            const selectAll = document.getElementById('selectAllDomains');
-                            if (selectAll) {
-                                selectAll.checked = checkedCount === domainCheckboxes.length;
-                                selectAll.indeterminate = checkedCount > 0 && checkedCount < domainCheckboxes.length;
+                        } else if (domainName && serverIp) {
+                            if (confirm(`确定要删除域名 ${domainName} 吗？此操作不可恢复！`)) {
+                                fetch(`/api/servers/ip/${serverIp}`)
+                                    .then(response => response.json())
+                                    .then(server => {
+                                        if (!server || !server.id) {
+                                            throw new Error(`找不到服务器信息 (IP: ${serverIp})`);
+                                        }
+                                        return fetch('/api/deploy/delete-domain', {
+                                            method: 'POST',
+                                            headers: { 'Content-Type': 'application/json' },
+                                            body: JSON.stringify({ domainName, serverId: server.id })
+                                        });
+                                    })
+                                    .then(res => res.json())
+                                    .then(result => {
+                                        if (result.success) {
+                                            loadDomains();
+                                            loadDeployedDomains();
+                                        } else {
+                                            alert('删除失败: ' + result.error);
+                                        }
+                                    })
+                                    .catch(error => {
+                                        alert('删除失败: ' + error.message);
+                                    });
                             }
-                        });
+                        } else {
+                            alert('缺少必要信息，无法删除域名');
+                        }
                     });
-                } else {
-                    console.log('没有域名复选框元素需要绑定事件');
-                }
-            } else {
-                console.error('找不到域名管理表格元素');
+                });
             }
-            
-            // 绑定编辑按钮事件
-            bindDomainEditButtons();
-            
-            console.log('域名列表加载完成');
-            
-            // 添加：同时加载已部署域名列表
-            loadDeployedDomains();
-        })
-        .catch(error => {
-            console.error('加载域名列表失败:', error);
+            // ... existing code ...
         });
 }
 
@@ -1810,7 +1833,7 @@ function loadCertificateSelect() {
             
             // 添加固定的证书类型选项
             select.innerHTML += '<option value="acme">ACME</option>';
-            select.innerHTML += '<option value="buypass">自签</option>';
+            select.innerHTML += '<option value="buypass">必应</option>';
             
             certificates.forEach(cert => {
                 if (cert.status === '有效') {
@@ -2274,9 +2297,9 @@ function loadServers() {
 
 // 绑定服务器详情和编辑按钮事件
 function bindServerButtons() {
-    // 绑定服务器详情按钮
-    const detailButtons = document.querySelectorAll('.btn-server-detail');
-    detailButtons.forEach(button => {
+    // 绑定服务器详情按钮事件
+    const serverDetailButtons = document.querySelectorAll('.btn-server-detail');
+    serverDetailButtons.forEach(button => {
         button.addEventListener('click', function() {
             const serverId = this.getAttribute('data-id');
             
@@ -2284,15 +2307,14 @@ function bindServerButtons() {
             fetch(`/api/servers/${serverId}`)
                 .then(response => response.json())
                 .then(server => {
-                    // 填充详情模态框
-                    document.getElementById('detailServerName').textContent = server.name || '未命名服务器';
+                    // 填充服务器详情模态框
+                    document.getElementById('detailServerName').textContent = server.name || '-';
                     document.getElementById('detailServerIP').textContent = server.ip || '-';
                     document.getElementById('detailServerPort').textContent = server.port || '22';
                     document.getElementById('detailServerUsername').textContent = server.username || '-';
-                    document.getElementById('detailServerAuthType').textContent = server.auth_type === 'password' ? '密码认证' : '密钥认证';
+                    document.getElementById('detailServerAuthType').textContent = server.auth_type || '密码';
                     document.getElementById('detailServerWebroot').textContent = server.webroot || '-';
-                    document.getElementById('detailServerNotes').textContent = server.notes || '无备注';
-                    document.getElementById('detailServerHostname').textContent = server.hostname || '未获取';
+                    document.getElementById('detailServerNotes').textContent = server.notes || '-';
                     
                     // 存储当前服务器ID，方便编辑时使用
                     document.getElementById('editServerId').value = server.id;
@@ -2354,7 +2376,6 @@ function editServer(serverId) {
             document.getElementById('editServerAuthType').value = server.auth_type || 'password';
             document.getElementById('editServerWebRoot').value = server.webroot || '';
             document.getElementById('editServerNote').value = server.notes || '';
-            document.getElementById('editServerHostname').value = server.hostname || '';
             
             // 根据认证方式显示不同的表单字段
             if (server.auth_type === 'key') {
@@ -2529,7 +2550,7 @@ function loadDeployedDomains() {
                             const managedDomain = domainMap[deployedDomain.domain_name] || {};
                             
                             deployedTbody.innerHTML += `
-                                <tr data-domain-id="${deployedDomain.id}">
+                                <tr data-domain-id="${deployedDomain.id}" data-bcid="${deployedDomain.bcid || ''}">
                                     <td>${deployedDomain.domain_name}</td>
                                     <td>${managedDomain.registrar || '-'}</td>
                                     <td>
@@ -2557,7 +2578,8 @@ function loadDeployedDomains() {
                                         <button class="btn btn-sm btn-danger btn-delete-deployed-domain" 
                                             data-id="${deployedDomain.id}"
                                             data-domain="${deployedDomain.domain_name}"
-                                            data-server-ip="${deployedDomain.server_ip || ''}">
+                                            data-server-ip="${deployedDomain.server_ip || ''}"
+                                            data-bcid="${deployedDomain.bcid || ''}">
                                             <i class="bi bi-trash"></i> 删除
                                         </button>
                                     </td>
@@ -2595,8 +2617,8 @@ function loadDeployedDomains() {
                                 const domainId = this.getAttribute('data-id');
                                 const domainName = this.getAttribute('data-domain');
                                 const serverIp = this.getAttribute('data-server-ip');
-                                
-                                deleteDeployedDomain(domainId, domainName, serverIp);
+                                const bcid = this.getAttribute('data-bcid');
+                                deleteDeployedDomain(domainId, domainName, serverIp, bcid);
                             });
                         });
                         
@@ -2620,50 +2642,27 @@ function loadDeployedDomains() {
  * @param {string} domainName - 域名名称 (主要标识符)
  * @param {string} serverIp - 服务器IP
  */
-function deleteDeployedDomain(domainId, domainName, serverIp) {
-    if (!domainName || !serverIp) {
-        alert('缺少必要信息，无法删除域名');
-        return;
-    }
-    
-    // 一次确认，包含完整警告信息
-    if (!confirm(`警告：此操作不可恢复！\n确定要删除域名 ${domainName} 吗？此操作将删除服务器上的网站文件和Nginx配置。`)) {
-        return;
-    }
-    
-    // 显示加载状态 - domainId 仅用于查找UI元素
-    const button = document.querySelector(`.btn-delete-deployed-domain[data-domain="${domainName}"]`) || 
-                   document.querySelector(`.btn-delete-deployed-domain[data-id="${domainId}"]`);
-    
-    if (button) {
-        const originalText = button.innerHTML;
-        button.innerHTML = '<i class="bi bi-hourglass-split"></i> 删除中...';
-        button.disabled = true;
-        
-        // 获取服务器信息
-        fetch(`/api/servers/ip/${serverIp}`)
-            .then(response => response.json())
-            .then(server => {
-                if (!server || !server.id) {
-                    throw new Error(`找不到服务器信息 (IP: ${serverIp})`);
-                }
-                
-                // 执行域名删除操作 - 主要使用domainName作为标识符
-                return fetch('/api/deploy/delete-domain', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ 
-                        domainName,  // 主要标识符
-                        serverId: server.id,
-                        domainId     // 保留用于向后兼容
-                    })
-                });
+function deleteDeployedDomain(domainId, domainName, serverIp, bcid) {
+    if (bcid) {
+        if (!confirm(`警告：此操作不可恢复！\n确定要删除域名 ${domainName} 吗？此操作将删除服务器上的网站文件和Nginx配置。`)) {
+            return;
+        }
+        const button = document.querySelector(`.btn-delete-deployed-domain[data-bcid="${bcid}"]`) || 
+                       document.querySelector(`.btn-delete-deployed-domain[data-domain="${domainName}"]`) ||
+                       document.querySelector(`.btn-delete-deployed-domain[data-id="${domainId}"]`);
+        if (button) {
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="bi bi-hourglass-split"></i> 删除中...';
+            button.disabled = true;
+            fetch('/api/deploy/delete-domain', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ bcid })
             })
             .then(response => response.json())
             .then(result => {
                 if (result.success) {
                     alert(`域名 ${domainName} 删除成功！`);
-                    // 重新加载已部署域名列表
                     loadDeployedDomains();
                 } else {
                     throw new Error(result.error || '未知错误');
@@ -2672,12 +2671,53 @@ function deleteDeployedDomain(domainId, domainName, serverIp) {
             .catch(error => {
                 console.error('删除域名失败:', error);
                 alert(`删除域名失败: ${error.message}`);
-                
-                // 恢复按钮状态
                 if (button) {
                     button.innerHTML = originalText;
                     button.disabled = false;
                 }
             });
+        }
+    } else if (domainName && serverIp) {
+        if (!confirm(`警告：此操作不可恢复！\n确定要删除域名 ${domainName} 吗？此操作将删除服务器上的网站文件和Nginx配置。`)) {
+            return;
+        }
+        const button = document.querySelector(`.btn-delete-deployed-domain[data-domain="${domainName}"]`) || 
+                       document.querySelector(`.btn-delete-deployed-domain[data-id="${domainId}"]`);
+        if (button) {
+            const originalText = button.innerHTML;
+            button.innerHTML = '<i class="bi bi-hourglass-split"></i> 删除中...';
+            button.disabled = true;
+            fetch(`/api/servers/ip/${serverIp}`)
+                .then(response => response.json())
+                .then(server => {
+                    if (!server || !server.id) {
+                        throw new Error(`找不到服务器信息 (IP: ${serverIp})`);
+                    }
+                    return fetch('/api/deploy/delete-domain', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ domainName, serverId: server.id, domainId })
+                    });
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        alert(`域名 ${domainName} 删除成功！`);
+                        loadDeployedDomains();
+                    } else {
+                        throw new Error(result.error || '未知错误');
+                    }
+                })
+                .catch(error => {
+                    console.error('删除域名失败:', error);
+                    alert(`删除域名失败: ${error.message}`);
+                    if (button) {
+                        button.innerHTML = originalText;
+                        button.disabled = false;
+                    }
+                });
+        }
+    } else {
+        alert('缺少必要信息，无法删除域名');
     }
 }

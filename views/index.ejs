@@ -177,7 +177,7 @@
 
         /* 部署日志样式 */
         .deployment-log {
-            height: 200px;
+            height: 340px;
             overflow-y: auto;
             background-color: #000;
             color: #33ff33;
@@ -294,7 +294,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <!-- 域名数据将通过JavaScript动态加载 -->
+                                        <!-- 域名数据将通过JavaScript动态加载，tr和删除按钮会带data-bcid属性 -->
                                     </tbody>
                                 </table>
                             </div>
@@ -457,7 +457,7 @@
                         </div>
                     </div>
                     
-                    <!-- 部署日志窗口 -->
+                    <!-- 添加部署日志窗口 -->
                     <div class="row mt-4">
                         <div class="col-12">
                             <div class="function-panel">
@@ -477,7 +477,7 @@
                                         </button>
                                     </div>
                                 </div>
-                                  <div class="function-body" id="deploymentLogContainer">
+                                <div class="function-body" id="deploymentLogContainer">
                                     <div id="deploymentLog" class="deployment-log">
                                         <div class="text-center text-muted my-3">
                                             <i class="bi bi-info-circle"></i> 
@@ -523,7 +523,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <!-- 域名数据将通过JavaScript动态加载 -->
+                                        <!-- 域名数据将通过JavaScript动态加载，tr和删除按钮会带data-bcid属性 -->
                                     </tbody>
                                 </table>
                             </div>
@@ -565,7 +565,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <!-- 服务器数据将通过JavaScript动态加载 -->
+                                        <!-- 服务器数据将通过JavaScript动态加载，tr和删除按钮会带data-bcid属性 -->
                                     </tbody>
                                 </table>
                             </div>
@@ -604,7 +604,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <!-- 证书数据将通过JavaScript动态加载 -->
+                                        <!-- 证书数据将通过JavaScript动态加载，tr和删除按钮会带data-bcid属性 -->
                                     </tbody>
                                 </table>
                             </div>
@@ -644,7 +644,7 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        <!-- 模板数据将通过JavaScript动态加载 -->
+                                        <!-- 模板数据将通过JavaScript动态加载，tr和删除按钮会带data-bcid属性 -->
                                     </tbody>
                                 </table>
                             </div>
@@ -860,14 +860,6 @@
                         </div>
                         
                         <div class="mb-3">
-                            <label for="newServerHostname" class="form-label">主机名</label>
-                            <input type="text" class="form-control" id="newServerHostname" placeholder="服务器主机名(可选)">
-                            <div class="form-text">
-                                如果留空，系统将自动尝试在连接时获取服务器的主机名
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
                             <label for="newServerAuthType" class="form-label">认证方式</label>
                             <select class="form-select" id="newServerAuthType">
                                 <option value="password">密码认证</option>
@@ -1014,10 +1006,6 @@
                         <div id="ipTestResult" class="mt-2" style="display: none;"></div>
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">主机名:</label>
-                        <div id="detailServerHostname" class="form-control bg-light"></div>
-                    </div>
-                    <div class="mb-3">
                         <label class="form-label">SSH端口:</label>
                         <div id="detailServerPort" class="form-control bg-light"></div>
                     </div>
@@ -1072,14 +1060,6 @@
                         </div>
                         
                         <div class="mb-3">
-                            <label for="editServerHostname" class="form-label">主机名</label>
-                            <input type="text" class="form-control" id="editServerHostname" placeholder="服务器主机名(可选)">
-                            <div class="form-text">
-                                如果留空，系统将自动尝试在连接时获取服务器的主机名
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
                             <label for="editServerAuthType" class="form-label">认证方式</label>
                             <select class="form-select" id="editServerAuthType">
                                 <option value="password">密码认证</option>
@@ -1130,7 +1110,6 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="/socket.io/socket.io.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>
