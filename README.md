@@ -169,7 +169,7 @@ domain-manager/
 
 ## 许可证
 
-本项目采用 [ISC 许可证](LICENSE)。
+本项目采用 [ISC 许可证](MIT)。
 
 ## 致谢
 
