@@ -1,0 +1,203 @@
+/* 域名管理系统样式表 */
+
+/* 域名面板 */
+.domain-panel {
+    margin-bottom: 20px;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+}
+
+.domain-header {
+    background-color: #f8f9fa;
+    border-bottom: 1px solid #dee2e6;
+    padding: 10px 15px;
+}
+
+.domain-body {
+    padding: 15px;
+}
+
+/* 状态徽章 */
+.status-badge {
+    font-size: 0.85em;
+    padding: 0.35em 0.65em;
+}
+
+/* 功能面板 */
+.function-panel {
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    margin-bottom: 10px;
+    background-color: #ffffff;
+}
+
+.function-header {
+    background-color: #f0f0f0;
+    padding: 8px 15px;
+    font-weight: 500;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.function-body {
+    padding: 10px;
+}
+
+/* 表格响应式 */
+.table-responsive {
+    margin-bottom: 20px;
+    max-height: 100%;
+    overflow-y: auto;
+}
+
+/* 按钮样式 */
+.btn-detail {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+/* 警告图标 */
+.alert i {
+    margin-right: 0.5rem;
+}
+
+/* 密码字段 */
+.password-container {
+    position: relative;
+}
+
+.password-field {
+    padding-right: 40px;
+}
+
+.password-toggle {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: #6c757d;
+    cursor: pointer;
+}
+
+/* 表格头固定 */
+.table-fixed-header thead th {
+    position: sticky;
+    top: 0;
+    background-color: #f8f9fa;
+    z-index: 1;
+}
+
+/* 卡片标题样式 */
+.card-title {
+    margin-bottom: 1rem;
+    color: #495057;
+}
+
+/* 表单标签和控件间距 */
+.form-label {
+    margin-bottom: 0.25rem;
+}
+
+/* 模态框内容样式 */
+.modal-body {
+    padding: 1.25rem;
+}
+
+/* 列表项样式 */
+.list-group-item {
+    padding: 0.75rem 1.25rem;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+    .domain-header, .function-header {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .domain-body, .function-body {
+        padding: 0.75rem;
+    }
+    
+    .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.875rem;
+    }
+}
+
+/* 进度条样式 */
+.progress {
+    height: 1.5rem;
+}
+
+.progress-bar {
+    font-size: 0.75rem;
+    line-height: 1.5rem;
+}
+
+/* 摘要列表样式 */
+.list-unstyled li {
+    margin-bottom: 0.5rem;
+}
+
+/* 表格内容垂直居中 */
+.table td {
+    vertical-align: middle;
+}
+
+/* 警告框样式 */
+.alert-warning {
+    background-color: #fff3cd;
+    border-color: #ffecb5;
+    color: #664d03;
+}
+
+.alert-danger {
+    background-color: #f8d7da;
+    border-color: #f5c2c7;
+    color: #842029;
+}
+
+.setting-buttons {
+    margin-bottom: 20px;
+}
+.setting-buttons .btn {
+    margin-right: 10px;
+}
+.alert-icon {
+    color: #dc3545;
+    margin-right: 5px;
+}
+.table {
+    font-size: 0.875rem;
+}
+.mb-3 {
+    margin-bottom: 0.75rem !important;
+}
+#panelSettingsForm .mb-3 {
+    margin-bottom: 0.5rem !important;
+}
+.tab-content {
+    padding-top: 0.5rem;
+}
+.card-body {
+    padding: 0.75rem;
+}
+
+/* 刷新按钮旋转动画 */
+@keyframes rotate {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.rotate-animation {
+    animation: rotate 1s linear;
+}
+
+.refresh-status-btn {
+    padding: 0.25rem 0.5rem;
+}
+
+.refresh-status-btn:hover {
+    background-color: #f0f0f0;
+} 

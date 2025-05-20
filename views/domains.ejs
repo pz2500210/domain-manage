@@ -1,0 +1,202 @@
+<div class="row">
+    <div class="col-md-12 mb-4">
+        <div class="card">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h4 class="m-0"><i class="bi bi-globe"></i> 域名管理</h4>
+                <button class="btn btn-light" data-bs-toggle="modal" data-bs-target="#addDomainModal">
+                    <i class="bi bi-plus-circle"></i> 添加域名
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th><input type="checkbox" id="selectAll"></th>
+                                <th>域名</th>
+                                <th>注册商</th>
+                                <th>到期日期</th>
+                                <th>证书到期</th>
+                                <th>服务器</th>
+                                <th>状态</th>
+                                <th>操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="domainsList">
+                            <tr>
+                                <td colspan="8" class="text-center">
+                                    <div class="spinner-border text-primary" role="status">
+                                        <span class="visually-hidden">加载中...</span>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="card-footer">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <button id="deleteSelected" class="btn btn-danger" disabled>
+                            <i class="bi bi-trash"></i> 删除选中
+                        </button>
+                    </div>
+                    <div>
+                        总计: <span id="totalDomains">0</span> 个域名
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加域名模态框 -->
+<div class="modal fade" id="addDomainModal" tabindex="-1" aria-labelledby="addDomainModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title" id="addDomainModalLabel"><i class="bi bi-plus-circle"></i> 添加域名</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addDomainForm">
+                    <div class="mb-3">
+                        <label for="domain_name" class="form-label">域名 <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="domain_name" name="domain_name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="registrar" class="form-label">注册商</label>
+                        <input type="text" class="form-control" id="registrar" name="registrar">
+                    </div>
+                    <div class="mb-3">
+                        <label for="url" class="form-label">管理面板URL</label>
+                        <input type="url" class="form-control" id="url" name="url">
+                    </div>
+                    <div class="mb-3">
+                        <label for="username" class="form-label">用户名</label>
+                        <input type="text" class="form-control" id="username" name="username">
+                    </div>
+                    <div class="mb-3">
+                        <label for="password" class="form-label">密码</label>
+                        <input type="password" class="form-control" id="password" name="password">
+                    </div>
+                    <div class="mb-3">
+                        <label for="expiry_date" class="form-label">到期日期</label>
+                        <input type="date" class="form-control" id="expiry_date" name="expiry_date">
+                    </div>
+                    <div class="mb-3">
+                        <label for="server_id" class="form-label">服务器</label>
+                        <select class="form-control" id="server_id" name="server_id">
+                            <option value="">-- 请选择服务器 --</option>
+                            <!-- 服务器选项将通过JavaScript加载 -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">备注</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-success" id="saveDomain">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑域名模态框 -->
+<div class="modal fade" id="editDomainModal" tabindex="-1" aria-labelledby="editDomainModalLabel" aria-hidden="true">
+    <!-- 结构与添加域名模态框类似，仅ID和标题不同 -->
+</div>
+
+<!-- 域名详情模态框 -->
+<div class="modal fade" id="viewDomainModal" tabindex="-1" aria-labelledby="viewDomainModalLabel" aria-hidden="true">
+    <!-- 类似的结构，但只读 -->
+</div>
+
+<!-- 添加域名页面的JavaScript -->
+<% if (typeof scripts === 'undefined') { %>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // 加载域名列表
+        loadDomains();
+        
+        // 加载服务器列表
+        loadServers();
+        
+        // 添加域名
+        document.getElementById('saveDomain').addEventListener('click', function() {
+            saveDomain();
+        });
+        
+        // 全选
+        document.getElementById('selectAll').addEventListener('change', function() {
+            const checkboxes = document.querySelectorAll('#domainsList input[type="checkbox"]');
+            checkboxes.forEach(checkbox => checkbox.checked = this.checked);
+            toggleDeleteButton();
+        });
+        
+        // 批量删除
+        document.getElementById('deleteSelected').addEventListener('click', function() {
+            deleteSelectedDomains();
+        });
+    });
+    
+    // 加载域名列表
+    function loadDomains() {
+        fetch('/api/domains')
+            .then(response => response.json())
+            .then(domains => {
+                const tbody = document.getElementById('domainsList');
+                const totalDomains = document.getElementById('totalDomains');
+                
+                tbody.innerHTML = '';
+                totalDomains.textContent = domains.length;
+                
+                if (domains.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" class="text-center">暂无数据</td></tr>';
+                    return;
+                }
+                
+                domains.forEach(domain => {
+                    const expiryDate = domain.expiry_date ? new Date(domain.expiry_date).toLocaleDateString() : '-';
+                    const certExpiryDate = domain.cert_expiry_date ? new Date(domain.cert_expiry_date).toLocaleDateString() : '-';
+                    
+                    tbody.innerHTML += `
+                    <tr>
+                        <td><input type="checkbox" class="domain-check" data-id="${domain.id}"></td>
+                        <td>${domain.domain_name}</td>
+                        <td>${domain.registrar || '-'}</td>
+                        <td>${expiryDate}</td>
+                        <td>${certExpiryDate}</td>
+                        <td>${domain.server_name || '-'}</td>
+                        <td><span class="badge bg-${domain.status === '在线' ? 'success' : 'warning'}">${domain.status || '未知'}</span></td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <button class="btn btn-info" onclick="viewDomain(${domain.id})"><i class="bi bi-eye"></i></button>
+                                <button class="btn btn-primary" onclick="editDomain(${domain.id})"><i class="bi bi-pencil"></i></button>
+                                <button class="btn btn-danger" onclick="deleteDomain(${domain.id})"><i class="bi bi-trash"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                    `;
+                });
+                
+                // 添加复选框事件监听
+                document.querySelectorAll('.domain-check').forEach(checkbox => {
+                    checkbox.addEventListener('change', function() {
+                        toggleDeleteButton();
+                    });
+                });
+            })
+            .catch(error => {
+                console.error('加载域名失败:', error);
+                const tbody = document.getElementById('domainsList');
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center text-danger">加载数据失败</td></tr>';
+            });
+    }
+    
+    // 更多函数...
+</script>
+<% } %> 
