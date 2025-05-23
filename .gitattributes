@@ -1,0 +1,11 @@
+```
+# 强制所有文本文件使用LF行尾符（Unix/Linux 风格）
+* text=auto eol=lf
+
+# 如果有特定文件需要保留其原始行尾符（例如二进制文件，或者某些Windows特定的脚本）
+# *.bat eol=crlf
+# *.exe binary
+```
+
+* `* text=auto`: 告诉 Git 根据文件内容自动判断是否为文本文件，并相应地处理行尾符。
+* `eol=lf`: 强制 Git 在提交时将所有文本文件的行尾符标准化为 LF。在签出文件到工作目录时，Git 会根据用户的 `core.autocrlf` 设置进行转换（通常在 Windows 上会转换为 CRLF）。
